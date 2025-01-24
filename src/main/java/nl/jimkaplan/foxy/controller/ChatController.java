@@ -56,6 +56,8 @@ public class ChatController {
                     ChatResponse.class
             );
             log.info("Successfully processed chat request | Status: {}", response.getStatusCode());
+            log.debug("Request: {}", entity.getBody());
+
             ApiResponse<ChatResponse> apiResponse = ApiResponse.success(response.getBody());
             return ResponseEntity.status(response.getStatusCode()).body(apiResponse);
         } catch (HttpClientErrorException | HttpServerErrorException e) {

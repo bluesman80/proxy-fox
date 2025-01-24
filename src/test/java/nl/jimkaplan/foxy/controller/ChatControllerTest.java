@@ -5,6 +5,7 @@ import nl.jimkaplan.foxy.model.ChatRequest;
 import nl.jimkaplan.foxy.model.ChatResponse;
 import nl.jimkaplan.foxy.model.Provider;
 import nl.jimkaplan.foxy.service.ProviderService;
+import nl.jimkaplan.foxy.web.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,15 +77,16 @@ class ChatControllerTest {
         )).thenReturn(new ResponseEntity<>(chatResponse, HttpStatus.OK));
 
         // Act
-        ResponseEntity<ChatResponse> response = chatController.createChatCompletion(
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
                 chatRequest, "Org1", "Project1"
         );
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("chatcmpl-123", response.getBody().getId());
-        assertEquals("gpt-3.5-turbo", response.getBody().getModel());
+        assertNotNull(response.getBody().getData());
+        assertEquals("chatcmpl-123", ((ChatResponse) response.getBody().getData()).getId());
+        assertEquals("gpt-3.5-turbo", ((ChatResponse) response.getBody().getData()).getModel());
 
         // Verify mocks
         verify(providerService, times(1)).selectProvider("Org1", "Project1");
@@ -106,13 +108,15 @@ class ChatControllerTest {
         )).thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
 
         // Act
-        ResponseEntity<ChatResponse> response = chatController.createChatCompletion(
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
                 chatRequest, "Org1", "Project1"
         );
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNull(response.getBody());
+        assertNotNull(response.getBody());
+        assertNull(response.getBody().getData());
+        assertNotNull(response.getBody().getError());
 
         // Verify mocks
         verify(providerService, times(1)).selectProvider("Org1", "Project1");
@@ -134,13 +138,15 @@ class ChatControllerTest {
         )).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
         // Act
-        ResponseEntity<ChatResponse> response = chatController.createChatCompletion(
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
                 chatRequest, "Org1", "Project1"
         );
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNull(response.getBody());
+        assertNotNull(response.getBody());
+        assertNull(response.getBody().getData());
+        assertNotNull(response.getBody().getError());
 
         // Verify mocks
         verify(providerService, times(1)).selectProvider("Org1", "Project1");

@@ -17,7 +17,7 @@ public class AppConfig {
     @Bean
     public CommandLineRunner init(ProviderRepository repository) {
         return args -> {
-            if (args[0].equals("reset")) {
+            if (args.length != 0 && args[0].equals("reset")) {
                 repository.deleteAll();
             }
 

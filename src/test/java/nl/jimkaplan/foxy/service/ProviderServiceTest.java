@@ -29,7 +29,6 @@ class ProviderServiceTest {
 
     private Provider provider1;
     private Provider provider2;
-    private Provider provider3;
 
     @BeforeEach
     void setUp() {
@@ -48,14 +47,6 @@ class ProviderServiceTest {
         provider2.setPriority(2);
         provider2.setOrganizations(List.of("Org2"));
         provider2.setProjects(List.of("Project2"));
-
-        provider3 = new Provider();
-        provider3.setId("3");
-        provider3.setName("Provider3");
-        provider3.setUsageFlag(false); // Inactive provider
-        provider3.setPriority(3);
-        provider3.setOrganizations(List.of("Org3"));
-        provider3.setProjects(List.of("Project3"));
     }
 
     @Test
@@ -104,9 +95,8 @@ class ProviderServiceTest {
                 .willReturn(Collections.emptyList());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            providerService.selectProvider(null, null);
-        });
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                providerService.selectProvider(null, null));
         assertEquals("No available providers", exception.getMessage());
     }
 

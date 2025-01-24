@@ -17,6 +17,10 @@ public class AppConfig {
     @Bean
     public CommandLineRunner init(ProviderRepository repository) {
         return args -> {
+            if (args[0].equals("reset")) {
+                repository.deleteAll();
+            }
+
             if (repository.findByName("openai") == null) {
                 Provider defaultProvider = new Provider();
                 defaultProvider.setName("openai");

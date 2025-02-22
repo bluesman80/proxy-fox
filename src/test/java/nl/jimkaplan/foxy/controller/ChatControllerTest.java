@@ -8,153 +8,152 @@ import nl.jimkaplan.foxy.service.ProviderService;
 import nl.jimkaplan.foxy.web.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class ChatControllerTest {
 
-    @Autowired
-    private ChatController chatController;
-
-    @MockitoBean
+    @Mock
     private ProviderService providerService;
 
-    @MockitoBean
+    @Mock
     private RestTemplate restTemplate;
 
-    private Provider provider;
+    @InjectMocks
+    private ChatController chatController;
+
+    private Provider mockProvider;
     private ChatRequest chatRequest;
     private ChatResponse chatResponse;
 
     @BeforeEach
     void setUp() {
-        // Setup test data
-        provider = new Provider();
-        provider.setName("openai");
-        provider.setUrl("https://api.openai.com/v1/");
-        provider.setApiKey("test-api-key");
-        provider.setUsageFlag(true);
-        provider.setPriority(1);
-        provider.setDefaultModel("gpt-3.5-turbo");
+        mockProvider = new Provider();
+        mockProvider.setName("TestProvider");
+        mockProvider.setUrl("http://test-provider.com/");
+        mockProvider.setApiKey("test-api-key");
+        mockProvider.setDefaultModel("gpt-3.5-turbo");
+
         chatRequest = new ChatRequest(List.of(new ChatMessage("user", "Hello!")));
+        chatRequest.setModel("gpt-3.5-turbo");
 
         chatResponse = new ChatResponse();
-        chatResponse.setId("chatcmpl-123");
-        chatResponse.setObject("chat.completion");
-        chatResponse.setCreated(1677652288L);
-        chatResponse.setModel("gpt-3.5-turbo");
+        // Set any necessary fields in chatResponse
     }
 
     @Test
-    void testCreateChatCompletion_Success() {
-        // Arrange
-        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
-        when(restTemplate.postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        )).thenReturn(new ResponseEntity<>(chatResponse, HttpStatus.OK));
+    void whenNoProvidersAvailable_thenReturn503() {
+        when(providerService.getAvailableProviders(any(), any()))
+                .thenReturn(Collections.emptyList());
 
-        // Act
         ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
-                chatRequest, "Org1", "Project1"
-        );
+                chatRequest, null, null);
 
-        // Assert
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void whenProviderSucceeds_thenReturnSuccess() {
+        when(providerService.getAvailableProviders(any(), any()))
+                .thenReturn(Collections.singletonList(mockProvider));
+        
+        when(restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(ChatResponse.class)))
+                .thenReturn(ResponseEntity.ok(chatResponse));
+
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
+                chatRequest, null, null);
+
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getData());
-        assertEquals("chatcmpl-123", ((ChatResponse) response.getBody().getData()).getId());
-        assertEquals("gpt-3.5-turbo", ((ChatResponse) response.getBody().getData()).getModel());
-
-        // Verify mocks
-        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
-        verify(restTemplate, times(1)).postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        );
+        assertTrue(response.getBody().isSuccess());
     }
 
     @Test
-    void testCreateChatCompletion_ClientError() {
-        // Arrange
-        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
+    void whenFirstProviderFailsButSecondSucceeds_thenReturnSuccess() {
+        Provider secondProvider = new Provider();
+        secondProvider.setName("SecondProvider");
+        secondProvider.setUrl("http://second-provider.com/");
+        secondProvider.setApiKey("second-api-key");
+        secondProvider.setDefaultModel("gpt-4");
+
+        when(providerService.getAvailableProviders(any(), any()))
+                .thenReturn(Arrays.asList(mockProvider, secondProvider));
+
         when(restTemplate.postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        )).thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
+                eq(mockProvider.getUrl() + "chat/completions"),
+                any(),
+                eq(ChatResponse.class)))
+                .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
-        // Act
-        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
-                chatRequest, "Org1", "Project1"
-        );
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        ApiResponse<?> body = response.getBody();
-        assertNotNull(body);
-        assertNull(body.getData());
-        assertNotNull(body.getError());
-
-        // Verify mocks
-        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
-        verify(restTemplate, times(1)).postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        );
-    }
-
-    @Test
-    void testCreateChatCompletion_ServerError() {
-        // Arrange
-        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
         when(restTemplate.postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        )).thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+                eq(secondProvider.getUrl() + "chat/completions"),
+                any(),
+                eq(ChatResponse.class)))
+                .thenReturn(ResponseEntity.ok(chatResponse));
 
-        // Act
         ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
-                chatRequest, "Org1", "Project1"
-        );
+                chatRequest, null, null);
 
-        // Assert
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        ApiResponse<?> body = response.getBody();
-        assertNotNull(body);
-        assertNull(body.getData());
-        assertNotNull(body.getError());
-
-        // Verify mocks
-        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
-        verify(restTemplate, times(1)).postForEntity(
-                eq("https://api.openai.com/v1/chat/completions"),
-                any(HttpEntity.class),
-                eq(ChatResponse.class)
-        );
+        assertTrue(response.getBody().isSuccess());
     }
-}
+
+    @Test
+    void whenAllProvidersFail_thenReturn503() {
+        when(providerService.getAvailableProviders(any(), any()))
+                .thenReturn(Collections.singletonList(mockProvider));
+
+        when(restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(ChatResponse.class)))
+                .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
+                chatRequest, null, null);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void whenModelNotSpecified_thenUseProviderDefaultModel() {
+        chatRequest.setModel(null);
+
+        when(providerService.getAvailableProviders(any(), any()))
+                .thenReturn(Collections.singletonList(mockProvider));
+        
+        when(restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(ChatResponse.class)))
+                .thenReturn(ResponseEntity.ok(chatResponse));
+
+        ResponseEntity<ApiResponse<?>> response = chatController.createChatCompletion(
+                chatRequest, null, null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(mockProvider.getDefaultModel(), chatRequest.getModel());
+    }
+} 

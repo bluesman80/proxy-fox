@@ -31,15 +31,3 @@
     "max_tokens": 150,
     "stream": false
   }
-
-
-
-  curl "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions" \
--H "Content-Type: application/json" \
--H "Authorization: Bearer AIzaSyBgdu-iWf1BKZH62zDxN4NXfjrfvbJhU_I" \
--d '{
-    "model": "gemini-2.0-flash",
-    "messages": [
-        {"role": "user", "content": "Explain to me how AI works"}
-    ]
-    }'

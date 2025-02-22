@@ -55,9 +55,7 @@ class ChatControllerTest {
         provider.setUsageFlag(true);
         provider.setPriority(1);
 
-        chatRequest = new ChatRequest();
-        chatRequest.setModel("gpt-3.5-turbo");
-        chatRequest.setMessages(List.of(new ChatMessage("user", "Hello!")));
+        chatRequest = new ChatRequest("gpt-3.5-turbo", List.of(new ChatMessage("user", "Hello!")));
 
         chatResponse = new ChatResponse();
         chatResponse.setId("chatcmpl-123");
@@ -114,9 +112,10 @@ class ChatControllerTest {
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertNull(response.getBody().getData());
-        assertNotNull(response.getBody().getError());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertNull(body.getData());
+        assertNotNull(body.getError());
 
         // Verify mocks
         verify(providerService, times(1)).selectProvider("Org1", "Project1");
@@ -145,8 +144,10 @@ class ChatControllerTest {
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertNull(response.getBody().getData());
-        assertNotNull(response.getBody().getError());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertNull(body.getData());
+        assertNotNull(body.getError());
 
         // Verify mocks
         verify(providerService, times(1)).selectProvider("Org1", "Project1");

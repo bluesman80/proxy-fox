@@ -50,53 +50,53 @@ class ProviderServiceTest {
     }
 
     @Test
-    void testSelectProvider_NoFilters() {
+    void testgetAvailableProviders_NoFilters() {
         // Arrange
         given(repository.findByUsageFlagTrueOrderByPriorityAsc())
                 .willReturn(List.of(provider1, provider2));
 
         // Act
-        Provider result = providerService.selectProvider(null, null);
+        List<Provider> result = providerService.getAvailableProviders(null, null);
 
         // Assert
-        assertEquals(provider1, result);
+        assertEquals(provider1, result.get(0));
     }
 
     @Test
-    void testSelectProvider_WithOrganizationFilter() {
+    void testgetAvailableProviders_WithOrganizationFilter() {
         // Arrange
         given(repository.findByUsageFlagTrueOrderByPriorityAsc())
                 .willReturn(List.of(provider1, provider2));
 
         // Act
-        Provider result = providerService.selectProvider("Org1", null);
+        List<Provider> result = providerService.getAvailableProviders("Org1", null);
 
         // Assert
-        assertEquals(provider1, result);
+        assertEquals(provider1, result.get(0));
     }
 
     @Test
-    void testSelectProvider_WithProjectFilter() {
+    void testgetAvailableProviders_WithProjectFilter() {
         // Arrange
         given(repository.findByUsageFlagTrueOrderByPriorityAsc())
                 .willReturn(List.of(provider1, provider2));
 
         // Act
-        Provider result = providerService.selectProvider(null, "Project2");
+        List<Provider> result = providerService.getAvailableProviders(null, "Project2");
 
         // Assert
-        assertEquals(provider2, result);
+        assertEquals(provider2, result.get(0));
     }
 
     @Test
-    void testSelectProvider_NoAvailableProviders() {
+    void testgetAvailableProviders_NoAvailableProviders() {
         // Arrange
         given(repository.findByUsageFlagTrueOrderByPriorityAsc())
                 .willReturn(Collections.emptyList());
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                providerService.selectProvider(null, null));
+                providerService.getAvailableProviders(null, null));
         assertEquals("No available providers", exception.getMessage());
     }
 

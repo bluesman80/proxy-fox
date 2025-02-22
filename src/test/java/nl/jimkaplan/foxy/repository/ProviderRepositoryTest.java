@@ -34,6 +34,7 @@ class ProviderRepositoryTest {
         provider1.setPriority(1);
         provider1.setOrganizations(List.of("Org1"));
         provider1.setProjects(List.of("Project1"));
+        provider1.setDefaultModel("gpt-3.5-turbo");
 
         provider2 = new Provider();
         provider2.setName("Provider2");
@@ -41,7 +42,7 @@ class ProviderRepositoryTest {
         provider2.setPriority(2);
         provider2.setOrganizations(List.of("Org2"));
         provider2.setProjects(List.of("Project2"));
-
+        provider2.setDefaultModel("gpt-44");
         // Save test data to the database
         providerRepository.save(provider1);
         providerRepository.save(provider2);

@@ -12,7 +12,7 @@ import java.util.List;
 public class ProviderService {
     private final ProviderRepository repository;
 
-    public Provider selectProvider(String organization, String project) {
+    public List<Provider> getAvailableProviders(String organization, String project) {
         // Implementation with failover logic
         List<Provider> candidates = repository.findByUsageFlagTrueOrderByPriorityAsc();
 
@@ -21,13 +21,14 @@ public class ProviderService {
                     .filter(p -> matchesAssociations(p, organization, project))
                     .toList();
         }
-        // Default to first available provider
-        return candidates.stream()
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No available providers"));
+
+        if (candidates.isEmpty()) {
+            throw new RuntimeException("No available providers");
+        }
+        return candidates;
     }
 
-    public boolean matchesAssociations(Provider provider, String org, String proj) {
+    protected boolean matchesAssociations(Provider provider, String org, String proj) {
         // Custom logic for organization/project matching
         if (org == null) {
             return provider.getProjects().contains(proj);

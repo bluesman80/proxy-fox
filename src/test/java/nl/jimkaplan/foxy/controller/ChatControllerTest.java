@@ -54,8 +54,8 @@ class ChatControllerTest {
         provider.setApiKey("test-api-key");
         provider.setUsageFlag(true);
         provider.setPriority(1);
-
-        chatRequest = new ChatRequest("gpt-3.5-turbo", List.of(new ChatMessage("user", "Hello!")));
+        provider.setDefaultModel("gpt-3.5-turbo");
+        chatRequest = new ChatRequest(List.of(new ChatMessage("user", "Hello!")));
 
         chatResponse = new ChatResponse();
         chatResponse.setId("chatcmpl-123");
@@ -67,7 +67,7 @@ class ChatControllerTest {
     @Test
     void testCreateChatCompletion_Success() {
         // Arrange
-        when(providerService.selectProvider(any(), any())).thenReturn(provider);
+        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
         when(restTemplate.postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),
@@ -87,7 +87,7 @@ class ChatControllerTest {
         assertEquals("gpt-3.5-turbo", ((ChatResponse) response.getBody().getData()).getModel());
 
         // Verify mocks
-        verify(providerService, times(1)).selectProvider("Org1", "Project1");
+        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
         verify(restTemplate, times(1)).postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),
@@ -98,7 +98,7 @@ class ChatControllerTest {
     @Test
     void testCreateChatCompletion_ClientError() {
         // Arrange
-        when(providerService.selectProvider(any(), any())).thenReturn(provider);
+        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
         when(restTemplate.postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),
@@ -118,7 +118,7 @@ class ChatControllerTest {
         assertNotNull(body.getError());
 
         // Verify mocks
-        verify(providerService, times(1)).selectProvider("Org1", "Project1");
+        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
         verify(restTemplate, times(1)).postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),
@@ -129,7 +129,7 @@ class ChatControllerTest {
     @Test
     void testCreateChatCompletion_ServerError() {
         // Arrange
-        when(providerService.selectProvider(any(), any())).thenReturn(provider);
+        when(providerService.getAvailableProviders(any(), any())).thenReturn(List.of(provider));
         when(restTemplate.postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),
@@ -150,7 +150,7 @@ class ChatControllerTest {
         assertNotNull(body.getError());
 
         // Verify mocks
-        verify(providerService, times(1)).selectProvider("Org1", "Project1");
+        verify(providerService, times(1)).getAvailableProviders("Org1", "Project1");
         verify(restTemplate, times(1)).postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
                 any(HttpEntity.class),

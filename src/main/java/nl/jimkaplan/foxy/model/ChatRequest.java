@@ -10,7 +10,6 @@ import java.util.Map;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChatRequest {
-    @NonNull
     private String model;
     @NonNull
     private List<ChatMessage> messages;

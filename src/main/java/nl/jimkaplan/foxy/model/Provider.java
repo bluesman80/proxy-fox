@@ -15,6 +15,7 @@ public class Provider {
     private String apiKey;
     private boolean usageFlag;
     private int priority;
+    private String defaultModel;
     private List<String> organizations;
     private List<String> projects;
 }
